@@ -77,7 +77,7 @@ class RoleManager(commands.Cog):
 
         return guild, role
 
-    @bot.event
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         """
         On the event of a user adding a reaction to the specified message: add specified role
@@ -94,7 +94,7 @@ class RoleManager(commands.Cog):
                 payload.member.send(
                     f"Unable to add role {parsed[-1]}. Please contact a mod for help.")
 
-    @bot.event
+    @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
         """
         On the event of a user removing a reaction from the specified message: remove specified role

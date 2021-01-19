@@ -30,7 +30,7 @@ class UserJoin(commands.Cog):
         Press 🟢 to accept or 🔴 to decline.
         """
 
-    @bot.event
+    @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         """
         Event hook to send a simple private message with responder.
@@ -66,7 +66,7 @@ class UserJoin(commands.Cog):
             If you ever change your mind and do accept, react to this message with a "🟢" emoji to get into the server!
             """)
 
-    @bot.event
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         """
         An 'after-math' for people to reconsider their 'decision.'
