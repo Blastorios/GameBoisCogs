@@ -4,7 +4,7 @@ import discord
 from redbot.core import checks, commands
 
 
-class UserJoin(discord.Client):
+class UserJoin(commands.Cog):
     """
     A simple on_member_join cog
     """
