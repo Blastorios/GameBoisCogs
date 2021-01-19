@@ -1,0 +1,6 @@
+{
+  "author": ["Blastorios#1997"],
+  "description": "A Role Manager which utilizes the possibility of reacting to a message",
+  "install_msg": "Don't forget to set a nice welcome message for new users :)",
+  "short": "Role Manager: Allow the bot to take over rolemanagement for you."
+}

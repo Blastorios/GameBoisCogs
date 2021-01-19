@@ -1,0 +1,6 @@
+{
+  "author": ["Blastorios#1997"],
+  "description": "Add a specified role to a user that 'accepts' your rules",
+  "install_msg": "Don't forget to set a nice welcome message for new users",
+  "short": "On_Join Role Assigner"
+}
