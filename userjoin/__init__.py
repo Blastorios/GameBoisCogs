@@ -2,4 +2,5 @@ from .userjoin import UserJoin
 
 
 def setup(bot):
-    bot.add_cog(UserJoin())
+    userjoin_cog = UserJoin(bot)
+    bot.add_cog(userjoin_cog)
