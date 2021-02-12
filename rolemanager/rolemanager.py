@@ -3,79 +3,118 @@ Created on: 18/01/2021
 Created by: @Blastorios'''
 
 import json
+import string
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import Dict, List, Tuple, Optional
 
 import discord
 from redbot.core import checks, commands
+from redbot.core.bot import Red
+from redbot.core.config import Config
+from redbot.core.commands import GuildContext
 from redbot.core.data_manager import cog_data_path
 
-# TODO
-# Initialize a JSON file within the data dir to store user-acquired roles
-# Create a 'on-cog-startup (aka method called inside init)' method to insert the JSON storage if it can find anything at the predetermined data dir
-# Make a Simple update function that allows the cog to check all added roles within the data
+from .log import log
+from .get_class_atts import get_class_attributes
 
 
 class RoleManager(commands.Cog):
     """
-    Straightforward Role Generator with the use of emojis
+    Gamebois RoleManager. 
+
+    Designed to contain all necessary Role Management Functionalities.
+
+    :params:
+
+    bot: The Redbot Core
+
+    return RoleManager object
     """
 
-    def __init__(self, bot):
+    __author__ = "Blastorios"
+    __credits__ = ["Blastorios"]
+
+    __license__ = "MIT"
+    __version__ = "0.1.0"
+    __maintainer__ = "Blastorios"
+    __status__ = "Development"
+
+    def __init__(self, bot, unique_id, logs):
         super().__init__()
         self.bot = bot
-        self.set_message_att = {
-            "presence": False,
-            "message": "",
-            "message_id": ""
-        }
-        self.emoji_to_role = {}
-        self._set_persistent_data()
+        self._config = Config.get_conf(
+            self, identifier=unique_id, force_registration=True)
 
-    def _set_persistent_data(self):
-        """
-        ALlow for persisent Role Management when the bot gets disconnected and/or the VPS goes offline.
-        """
-        self.data_position = cog_data_path(
-            raw_name="RoleManager") / "rolemanager_storage.json"
+        self._config.register_guild(
+            roles={},
+            welcome_message="",
+            welcome_message_id="",
+            welcome_message_channel="",
+        )
 
-        if self.data_position.is_file():
+        self._cached = Dict()
+
+        # self._config.register_member(
+        #     trusted=False,
+        #     roles=[],
+        #     forbidden=[],
+        # )
+
+        # self._config.register_role(
+        #     emoji="",
+        #     requires=[]
+        # )
+
+    @checks.admin_or_permissions(manage_guild=True)
+    @commands.bot_has_permissions(manage_roles=True)
+    @commands.command(name="setmessage")
+    async def setmessage(self, ctx: commands.GuildContext, message: str):
+        """
+        Set the message to add the emoji's
+        """
+        guild = ctx.message.guild
+        current_message = await self._config.guild(guild).welcome_message()
+
+        # Check if the guild alrdy has used 'setmessage'
+        if current_message:
+            await ctx.send("A Message has already been set for this server. Would you like to change it? (respond with yes or no)")
+            continue_setup = await bot.wait_for(
+                'message', check=lambda message: message if message.author == ctx.author and message.channel in guild.channels and (message.lower() == "yes" or message.lower() == "no"))
+            if continue_setup.lower() == "yes":
+                pass
+            else:
+                return await ctx.send("Stopped the setup")
+
+        # Intermediate Update about the progress
+        ctx.send("""
+        Succesfully received the new message for RoleManager!
+        
+        Which channel would you like to post it? (Type the exact channel name in chat)
+        """)
+
+        # Simple watcher
+        which_channel = await bot.wait_for(
+            'message', check=lambda message: message if message.author == ctx.author and message.channel in guild.channels else False)
+
+        if not which_channel:
             return
+        # Create try/except blocks to check for assignment availability
+        try:
+            assigned_channel = discord.utils.get(
+                ctx.guild.channels, name=which_channel)
 
-        new_json_data = {
-            "members": {},
-            "banned members": {},
-            "emoji_to_role": {},
-        }
+        except Exception as exc:
+            return await ctx.send(f"Could not find channel {which_channel}. Encountered error: {exc}")
 
         try:
-            with open(self.data_position, "r") as data_container:
-                json.dump(new_json_data, data_container)
-        except IOError:
-            return f"""
-            Could not open Storage Container at filepath {self.data_position}.
-            """
-        return
+            await self._config.guild(guild).welcome_message.set(message)
+            await self._config.guild(guild).welcome_message_channel.set(assigned_channel.id)
 
-    async def _check_payload_message(self, payload) -> Tuple:
-        if self.set_message_att["message_id"] or payload.message_id != self.set_message_att["message_id"]:
-            # If the setmessage has not been used yet || the payload id doesnt match the setmessage id
-            return False
+        except Exception as exc:
+            return await ctx.send(f"Could not assign given content to {guild} guild Configuration. Encountered Error: {exc}")
 
-        try:
-            role_id = self.emoji_to_role[payload.emoji]
-            # Check whether the role is even within the available options (prevent arbitrary spam)
-        except KeyError:
-            return False
-
-        guild = self.get_guild(payload.guild_id)
-        role = guild.get_role(role_id)
-
-        if guild is None or role is None:
-            # When the bot cant find a reasonable guild or role
-            return False
-
-        return guild, role
+        # Purposely taking the message from the Config object for persistence.
+        return await assigned_channel.send(self._config.guild(guild).welcome_message())
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
@@ -85,14 +124,13 @@ class RoleManager(commands.Cog):
         :params:
 
         """
-        parsed = await self._check_payload_message(payload)
+        guild = payload.guild
 
-        if parsed:
-            try:
-                await payload.member.add_roles(parsed[-1])
-            except discord.HTTPException:
-                payload.member.send(
-                    f"Unable to add role {parsed[-1]}. Please contact a mod for help.")
+        try:
+            await payload.member.add_roles(parsed[-1])
+        except discord.HTTPException:
+            payload.member.send(
+                f"Unable to add role {parsed[-1]}. Please contact a mod for help.")
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
@@ -100,20 +138,6 @@ class RoleManager(commands.Cog):
         On the event of a user removing a reaction from the specified message: remove specified role
         """
         pass
-
-    @checks.admin_or_permissions(manage_guild=True)
-    @commands.bot_has_permissions(manage_roles=True)
-    @commands.guild_only()
-    @commands.command(name="setmessage")
-    async def setmessage(self, ctx: commands.GuildContext, message: str):
-        """
-        Set the message to add the emoji's
-        """
-        if self.set_message_att["presence"]:
-            return await ctx.send("A Message has already been set for this server. Use '-newmessage' to change it")
-
-        send_message = await ctx.send(f"{message}")
-        self.set_message_id = send_message.id
 
     @checks.admin_or_permissions(manage_guild=True)
     @commands.bot_has_permissions(manage_roles=True)

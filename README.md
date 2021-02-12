@@ -1,6 +1,6 @@
 # Gamebois Cogs
 
-This repo holds the official Gamebois Cog collection. Developed by @Blastorios, these cogs range from basic utilities to fully fletched functional extensions that allow for web-based interactions while connected to the Gamebois server.
+This repo holds the official Gamebois Cog collection. These cogs range from basic utilities to fully fletched functional extensions that allow for web-based interactions.
 
 All Cogs are free to use.
 
